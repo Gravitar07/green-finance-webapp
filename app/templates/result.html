@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result - Green Finance Risk Prediction{% endblock %}
+
+{% block extra_css %}
+<style>
+    .result-container {
+        max-width: 900px;
+        margin: 30px auto;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        padding: 30px;
+    }
+    
+    .result-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .metrics-container {
+        display: flex;
+        justify-content: space-around;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .metric-card {
+        text-align: center;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        min-width: 200px;
+        margin-bottom: 15px;
+    }
+    
+    .metric-value {
+        font-size: 32px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .esg-good {
+        color: #4CAF50;
+    }
+    
+    .esg-fair {
+        color: #FFC107;
+    }
+    
+    .esg-poor {
+        color: #F44336;
+    }
+    
+    .risk-high {
+        color: #F44336;
+    }
+    
+    .risk-moderate {
+        color: #FFC107;
+    }
+    
+    .risk-low {
+        color: #4CAF50;
+    }
+    
+    .report-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+    
+    .markdown-content h3 {
+        color: #4CAF50;
+        margin-top: 0;
+    }
+    
+    .markdown-content h4 {
+        color: #2E86C1;
+        margin-top: 25px;
+    }
+    
+    .markdown-content ul {
+        padding-left: 20px;
+    }
+    
+    .markdown-content p {
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+    
+    .markdown-content hr {
+        border-top: 1px solid #ddd;
+        margin: 20px 0;
+    }
+    
+    .markdown-content strong {
+        font-weight: 600;
+    }
+    
+    .mock-report-notification {
+        background-color: #FEF9E7;
+        border-left: 4px solid #F39C12;
+        padding: 10px 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container result-container">
+    <div class="result-header">
+        <h2><i class="fas fa-leaf text-success me-2"></i>Green Finance Prediction Result</h2>
+        <h4 class="text-muted">{{ company_name }}</h4>
+    </div>
+    
+    {% if llm_error %}
+    <div class="mock-report-notification">
+        <i class="fas fa-info-circle text-warning me-2"></i>
+        <strong>Note:</strong> Using a simplified report due to API limitations. The AI report generation service is currently unavailable.
+    </div>
+    {% endif %}
+    
+    <div class="metrics-container">
+        <div class="metric-card">
+            <h5>ESG Score</h5>
+            {% if esg_score >= 70 %}
+                <div class="metric-value esg-good">{{ esg_score|round(1) }}</div>
+                <div class="metric-label">Good</div>
+            {% elif esg_score >= 50 %}
+                <div class="metric-value esg-fair">{{ esg_score|round(1) }}</div>
+                <div class="metric-label">Fair</div>
+            {% else %}
+                <div class="metric-value esg-poor">{{ esg_score|round(1) }}</div>
+                <div class="metric-label">Poor</div>
+            {% endif %}
+        </div>
+        
+        <div class="metric-card">
+            <h5>Risk Probability</h5>
+            {% if risk_probability >= 0.7 %}
+                <div class="metric-value risk-high">{{ (risk_probability * 100)|round(1) }}%</div>
+                <div class="metric-label">High Risk</div>
+            {% elif risk_probability >= 0.3 %}
+                <div class="metric-value risk-moderate">{{ (risk_probability * 100)|round(1) }}%</div>
+                <div class="metric-label">Moderate Risk</div>
+            {% else %}
+                <div class="metric-value risk-low">{{ (risk_probability * 100)|round(1) }}%</div>
+                <div class="metric-label">Low Risk</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="report-container">
+        <div class="markdown-content">
+            {{ llm_report|safe }}
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <a href="/home" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>New Prediction
+        </a>
+        <a href="/dashboard" class="btn btn-success">
+            <i class="fas fa-chart-bar me-2"></i>View Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %} 

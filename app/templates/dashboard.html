@@ -1,0 +1,419 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Green Finance Risk Prediction{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 30px;
+    }
+    
+    .prediction-card {
+        margin-bottom: 15px;
+        border-left: 4px solid #4CAF50;
+    }
+    
+    .prediction-card:hover {
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px 0;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 20px;
+        color: #e9ecef;
+    }
+    
+    .modal-body {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+    
+    .metrics-list {
+        list-style-type: none;
+        padding: 0;
+    }
+    
+    .metrics-list li {
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .metrics-list strong {
+        display: inline-block;
+        min-width: 180px;
+    }
+    
+    .badge-esg-good { background-color: #4CAF50; color: white; }
+    .badge-esg-fair { background-color: #FFC107; }
+    .badge-esg-poor { background-color: #F44336; color: white; }
+    
+    .badge-risk-high { background-color: #F44336; color: white; }
+    .badge-risk-moderate { background-color: #FFC107; }
+    .badge-risk-low { background-color: #4CAF50; color: white; }
+    
+    .danger-zone {
+        background-color: #ffebee;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 20px;
+    }
+    
+    .report-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        border: 1px solid #e9ecef;
+    }
+    
+    .markdown-content h3 {
+        color: #4CAF50;
+        margin-top: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .markdown-content h4 {
+        color: #2E86C1;
+        margin-top: 25px;
+        margin-bottom: 12px;
+    }
+    
+    .markdown-content ul {
+        padding-left: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .markdown-content p {
+        margin-bottom: 15px;
+        line-height: 1.6;
+    }
+    
+    .markdown-content hr {
+        border-top: 1px solid #ddd;
+        margin: 20px 0;
+    }
+    
+    .markdown-content strong {
+        font-weight: 600;
+    }
+    
+    .markdown-content table {
+        width: 100%;
+        margin-bottom: 1rem;
+        border-collapse: collapse;
+    }
+    
+    .markdown-content table th,
+    .markdown-content table td {
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+    }
+    
+    .markdown-content table thead th {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid dashboard-container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-bar text-success me-2"></i>Prediction History</h2>
+            <p class="text-muted">View and manage your past green finance risk predictions.</p>
+        </div>
+        <div class="col-auto">
+            <a href="/home" class="btn btn-outline-primary">
+                <i class="fas fa-plus me-2"></i>New Prediction
+            </a>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            {% if predictions|length > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-success">
+                            <tr>
+                                <th>Date</th>
+                                <th>Company</th>
+                                <th>ESG Score</th>
+                                <th>Risk Probability</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prediction in predictions %}
+                            <tr>
+                                <td>{{ prediction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ prediction.company_name }}</td>
+                                <td>
+                                    {% if prediction.esg_score >= 70 %}
+                                        <span class="badge bg-success">{{ prediction.esg_score|round(1) }} - Good</span>
+                                    {% elif prediction.esg_score >= 50 %}
+                                        <span class="badge bg-warning text-dark">{{ prediction.esg_score|round(1) }} - Fair</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{{ prediction.esg_score|round(1) }} - Poor</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if prediction.risk_probability >= 0.7 %}
+                                        <span class="badge bg-danger">{{ (prediction.risk_probability * 100)|round(1) }}% - High</span>
+                                    {% elif prediction.risk_probability >= 0.3 %}
+                                        <span class="badge bg-warning text-dark">{{ (prediction.risk_probability * 100)|round(1) }}% - Moderate</span>
+                                    {% else %}
+                                        <span class="badge bg-success">{{ (prediction.risk_probability * 100)|round(1) }}% - Low</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button 
+                                        class="btn btn-sm btn-outline-primary view-details-btn" 
+                                        data-prediction-id="{{ prediction.id }}"
+                                        onclick="viewPredictionDetails({{ prediction.id }})"
+                                    >
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </button>
+                                    <button 
+                                        class="btn btn-sm btn-outline-danger delete-btn"
+                                        data-prediction-id="{{ prediction.id }}"
+                                        onclick="confirmDelete({{ prediction.id }}, '{{ prediction.company_name }}')"
+                                    >
+                                        <i class="fas fa-trash me-1"></i>Delete
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>No predictions yet</h4>
+                    <p>You haven't made any predictions yet. Get started by creating your first prediction.</p>
+                    <a href="/home" class="btn btn-success mt-3">
+                        <i class="fas fa-plus me-2"></i>Make a Prediction
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title" id="detailsModalLabel">Prediction Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalLoading" class="text-center py-4">
+                    <div class="spinner-border text-success" role="status"></div>
+                    <p class="mt-2">Loading prediction details...</p>
+                </div>
+                <div id="modalContent" style="display: none;">
+                    <h4 id="companyName" class="mb-3"></h4>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white">
+                                    <h5 class="mb-0">ESG Score</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <span id="esgScoreBadge" class="badge" style="font-size: 1.2rem; padding: 10px;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header bg-info text-white">
+                                    <h5 class="mb-0">Risk Probability</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="text-center">
+                                        <span id="riskBadge" class="badge" style="font-size: 1.2rem; padding: 10px;"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mt-4 mb-3">Input Parameters</h5>
+                    <ul class="metrics-list">
+                        <li><strong>Impact Area - Community:</strong> <span id="communityValue"></span></li>
+                        <li><strong>Impact Area - Environment:</strong> <span id="environmentValue"></span></li>
+                        <li><strong>Impact Area - Customers:</strong> <span id="customersValue"></span></li>
+                        <li><strong>Impact Area - Governance:</strong> <span id="governanceValue"></span></li>
+                        <li><strong>Certification Cycle:</strong> <span id="certificationValue"></span></li>
+                        <li><strong>Date Created:</strong> <span id="createdDate"></span></li>
+                    </ul>
+                    
+                    <h5 class="mt-4 mb-3">LLM Report</h5>
+                    <div class="report-container p-3 bg-light rounded">
+                        <div id="llmReport" class="markdown-content"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete this prediction for <strong id="deleteCompanyName"></strong>?</p>
+                <p class="text-danger"><strong>Warning:</strong> This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // View prediction details
+    function viewPredictionDetails(predictionId) {
+        // Show modal with loading state
+        const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        detailsModal.show();
+        
+        document.getElementById('modalLoading').style.display = 'block';
+        document.getElementById('modalContent').style.display = 'none';
+        
+        // Fetch prediction details
+        fetch(`/api/prediction/${predictionId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Update modal content
+                document.getElementById('companyName').textContent = data.company_name;
+                
+                // Format date
+                const createdDate = new Date(data.created_at);
+                document.getElementById('createdDate').textContent = createdDate.toLocaleString();
+                
+                // Set input values
+                document.getElementById('communityValue').textContent = data.impact_area_community;
+                document.getElementById('environmentValue').textContent = data.impact_area_environment;
+                document.getElementById('customersValue').textContent = data.impact_area_customers;
+                document.getElementById('governanceValue').textContent = data.impact_area_governance;
+                document.getElementById('certificationValue').textContent = data.certification_cycle;
+                
+                // Set ESG score badge
+                const esgScoreBadge = document.getElementById('esgScoreBadge');
+                if (data.esg_score >= 70) {
+                    esgScoreBadge.className = 'badge badge-esg-good';
+                    esgScoreBadge.textContent = `${data.esg_score.toFixed(1)} - Good`;
+                } else if (data.esg_score >= 50) {
+                    esgScoreBadge.className = 'badge badge-esg-fair';
+                    esgScoreBadge.textContent = `${data.esg_score.toFixed(1)} - Fair`;
+                } else {
+                    esgScoreBadge.className = 'badge badge-esg-poor';
+                    esgScoreBadge.textContent = `${data.esg_score.toFixed(1)} - Poor`;
+                }
+                
+                // Set risk badge
+                const riskBadge = document.getElementById('riskBadge');
+                const riskPercentage = (data.risk_probability * 100).toFixed(1);
+                if (data.risk_probability >= 0.7) {
+                    riskBadge.className = 'badge badge-risk-high';
+                    riskBadge.textContent = `${riskPercentage}% - High Risk`;
+                } else if (data.risk_probability >= 0.3) {
+                    riskBadge.className = 'badge badge-risk-moderate';
+                    riskBadge.textContent = `${riskPercentage}% - Moderate Risk`;
+                } else {
+                    riskBadge.className = 'badge badge-risk-low';
+                    riskBadge.textContent = `${riskPercentage}% - Low Risk`;
+                }
+                
+                // Set LLM report
+                document.getElementById('llmReport').innerHTML = data.llm_response;
+                
+                // Hide loading, show content
+                document.getElementById('modalLoading').style.display = 'none';
+                document.getElementById('modalContent').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error fetching prediction details:', error);
+                document.getElementById('modalContent').innerHTML = '<div class="alert alert-danger">Error loading prediction details</div>';
+                document.getElementById('modalLoading').style.display = 'none';
+                document.getElementById('modalContent').style.display = 'block';
+            });
+    }
+    
+    // Confirm delete
+    function confirmDelete(predictionId, companyName) {
+        // Set company name in modal
+        document.getElementById('deleteCompanyName').textContent = companyName;
+        
+        // Set up delete button action
+        document.getElementById('confirmDeleteBtn').onclick = function() {
+            deletePrediction(predictionId);
+        };
+        
+        // Show modal
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+    
+    // Delete prediction
+    function deletePrediction(predictionId) {
+        // Show loading
+        showLoading();
+        
+        // Send delete request
+        fetch(`/api/prediction/${predictionId}`, {
+            method: 'DELETE',
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide delete modal
+                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
+                deleteModal.hide();
+                
+                // Reload page to refresh prediction list
+                window.location.reload();
+            })
+            .catch(error => {
+                console.error('Error deleting prediction:', error);
+                hideLoading();
+                alert('Error deleting prediction. Please try again.');
+            });
+    }
+</script>
+{% endblock %} 

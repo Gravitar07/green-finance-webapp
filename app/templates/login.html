@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Green Finance Risk Prediction{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <h2 class="text-center mb-4">
+        <i class="fas fa-leaf text-success me-2"></i>Green Finance
+    </h2>
+    
+    <h4 class="text-center mb-4">Login</h4>
+    
+    {% if error %}
+    <div class="alert alert-danger" role="alert">
+        {{ error }}
+    </div>
+    {% endif %}
+    
+    <form method="post" action="/login">
+        <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-user"></i></span>
+                <input type="text" class="form-control" id="username" name="username" required autofocus>
+            </div>
+        </div>
+        
+        <div class="mb-4">
+            <label for="password" class="form-label">Password</label>
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                <input type="password" class="form-control" id="password" name="password" required>
+            </div>
+        </div>
+        
+        <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+            </button>
+        </div>
+        
+        <div class="text-center mt-3">
+            <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Focus on username field when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('username').focus();
+    });
+</script>
+{% endblock %}
