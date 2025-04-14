@@ -5,11 +5,12 @@ from fastapi.responses import RedirectResponse
 import os
 import logging
 
-from app.database.database import engine
+from app.database.database import engine, SessionLocal
 from app.database.models import Base, User
 from app.models.predictor import initialize_models
-from app.routers import auth, prediction
+from app.routers import auth, prediction, admin
 from app.config import Config
+from app.utils.auth import get_password_hash
 
 # Configure logging
 logging.basicConfig(
@@ -57,6 +58,39 @@ async def startup_event():
         logger.info("Initializing models...")
         initialize_models()
         logger.info("Models initialized successfully")
+
+        # Create superuser if it doesn't exist
+        logger.info("Checking for superuser...")
+        db = SessionLocal()
+        try:
+            username = os.getenv("SUPERUSER_USERNAME", "admin")
+            email = os.getenv("SUPERUSER_EMAIL", "admin@gmail.com")
+            password = os.getenv("SUPERUSER_PASSWORD", "admin@123")
+
+            if not all([username, email, password]):
+                logger.warning("Superuser credentials not properly set in environment variables")
+                return
+
+            existing_user = db.query(User).filter(User.email == email).first()
+            if not existing_user:
+                superuser = User(
+                    username=username,
+                    email=email,
+                    hashed_password=get_password_hash(password),
+                    is_admin=True,
+                    is_active=True
+                )
+                db.add(superuser)
+                db.commit()
+                logger.info(f"Superuser {username} created successfully!")
+            else:
+                logger.info("Superuser already exists")
+        except Exception as e:
+            logger.error(f"Error creating superuser: {str(e)}")
+            db.rollback()
+        finally:
+            db.close()
+
     except Exception as e:
         logger.error(f"Error during startup: {e}")
         logger.error("Application may not function correctly due to startup errors")
@@ -64,6 +98,7 @@ async def startup_event():
 # Include routers
 app.include_router(auth.router)
 app.include_router(prediction.router)
+app.include_router(admin.router)
 
 @app.get("/")
 async def root():

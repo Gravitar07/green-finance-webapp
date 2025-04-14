@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 import datetime
 
 Base = declarative_base()
@@ -12,7 +13,10 @@ class User(Base):
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
     # Relationship
     predictions = relationship("Prediction", back_populates="user")
@@ -30,7 +34,7 @@ class Prediction(Base):
     certification_cycle = Column(Integer)
     esg_score = Column(Float)
     risk_probability = Column(Float)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # LLM Response - stored as text
     llm_response = Column(Text)

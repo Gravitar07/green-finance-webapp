@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Predictions Management - Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container {
+        padding: 30px;
+    }
+    
+    .admin-nav {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .admin-nav a {
+        color: #495057;
+        text-decoration: none;
+        margin-right: 20px;
+    }
+    
+    .admin-nav a:hover {
+        color: #4CAF50;
+    }
+    
+    .admin-nav a.active {
+        color: #4CAF50;
+        font-weight: bold;
+    }
+    
+    .prediction-card {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .prediction-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .prediction-metrics {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 15px;
+    }
+    
+    .metric-item {
+        text-align: center;
+        padding: 10px;
+        border-radius: 8px;
+        background-color: #f8f9fa;
+        min-width: 120px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+        font-weight: bold;
+        margin: 5px 0;
+    }
+    
+    .metric-label {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .prediction-actions {
+        margin-top: 15px;
+    }
+    
+    .report-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-chart-bar text-success me-2"></i>Predictions Management</h2>
+            <p class="text-muted">View and manage all system predictions.</p>
+        </div>
+    </div>
+    
+    <div class="admin-nav">
+        <a href="/admin"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+        <a href="/admin/predictions" class="active"><i class="fas fa-chart-bar me-2"></i>Predictions</a>
+    </div>
+    
+    <div class="row">
+        {% for prediction in predictions %}
+        <div class="col-md-6">
+            <div class="prediction-card">
+                <div class="prediction-header">
+                    <div>
+                        <h5>{{ prediction.company_name }}</h5>
+                        <p class="text-muted mb-0">by {{ prediction.user.username }}</p>
+                    </div>
+                    <div>
+                        <small class="text-muted">{{ prediction.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    </div>
+                </div>
+                
+                <div class="prediction-metrics">
+                    <div class="metric-item">
+                        <div class="metric-label">ESG Score</div>
+                        <div class="metric-value">
+                            {% if prediction.esg_score >= 70 %}
+                                <span class="text-success">{{ prediction.esg_score|round(1) }}</span>
+                            {% elif prediction.esg_score >= 50 %}
+                                <span class="text-warning">{{ prediction.esg_score|round(1) }}</span>
+                            {% else %}
+                                <span class="text-danger">{{ prediction.esg_score|round(1) }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">Risk Probability</div>
+                        <div class="metric-value">
+                            {% if prediction.risk_probability >= 0.7 %}
+                                <span class="text-danger">{{ (prediction.risk_probability * 100)|round(1) }}%</span>
+                            {% elif prediction.risk_probability >= 0.3 %}
+                                <span class="text-warning">{{ (prediction.risk_probability * 100)|round(1) }}%</span>
+                            {% else %}
+                                <span class="text-success">{{ (prediction.risk_probability * 100)|round(1) }}%</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="report-container">
+                    <h6>LLM Report</h6>
+                    <div class="markdown-content">
+                        {{ prediction.llm_response|safe }}
+                    </div>
+                </div>
+                
+                <div class="prediction-actions">
+                    <button class="btn btn-sm btn-outline-danger delete-prediction-btn" data-prediction-id="{{ prediction.id }}">
+                        <i class="fas fa-trash me-1"></i>Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Delete prediction
+    document.querySelectorAll('.delete-prediction-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to delete this prediction? This action cannot be undone.')) {
+                const predictionId = this.dataset.predictionId;
+                
+                fetch(`/api/prediction/${predictionId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('Prediction deleted successfully');
+                    window.location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting prediction');
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 

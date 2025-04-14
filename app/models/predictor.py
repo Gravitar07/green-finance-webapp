@@ -124,8 +124,8 @@ def run_prediction(
         # Prepare structured data input for ML model
         structured_data = [
             impact_area_community, 
-            impact_area_environment, 
             impact_area_customers, 
+            impact_area_environment, 
             impact_area_governance, 
             certification_cycle
         ]
@@ -136,9 +136,9 @@ def run_prediction(
         preprocessed_data = preprocessor.preprocess(structured_data)
         
         # Get predictions from ML model
-        ml_prediction_result = ml_predictor.predict(preprocessed_data)
-        risk_probability = float(ml_prediction_result[0][1])  # Class 1 probability
-        logger.info(f"Risk probability: {risk_probability}")
+        # ml_prediction_result = ml_predictor.predict(preprocessed_data)
+        # risk_probability = float(ml_prediction_result[0][1])  # Class 1 probability
+        # logger.info(f"Risk probability: {risk_probability}")
         
         # Calculate ESG score
         esg_score = calculate_esg(
@@ -148,6 +148,10 @@ def run_prediction(
             Config.ESG_WEIGHTS
         )
         logger.info(f"ESG score: {esg_score}")
+
+        # Derive risk probability from ESG score
+        risk_probability = max(0.0, min(1.0, (100 - esg_score) / 100))
+        logger.info(f"Calculated risk probability from ESG score: {risk_probability}")
         
         # Format raw input for LLM
         input_raw_data = f"""

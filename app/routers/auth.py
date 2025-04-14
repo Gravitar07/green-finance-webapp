@@ -11,6 +11,10 @@ from app.config import Config
 from pydantic import BaseModel
 from typing import Optional
 import os
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Authentication"])
 
@@ -88,29 +92,43 @@ def login(
     db: Session = Depends(get_db)
 ):
     """Handle login form submission"""
-    user = authenticate_user(db, username, password)
-    if not user:
+    try:
+        logger.info(f"Login attempt for user: {username}")
+        user = authenticate_user(db, username, password)
+        if not user:
+            logger.warning(f"Failed login attempt for user: {username}")
+            return templates.TemplateResponse(
+                "login.html", 
+                {"request": request, "error": "Invalid username or password"}
+            )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=Config.ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username}, expires_delta=access_token_expires
+        )
+        
+        # Set redirect URL based on user role
+        redirect_url = "/admin" if user.is_admin else "/home"
+        logger.info(f"User {username} logged in successfully, redirecting to: {redirect_url}")
+        
+        # Redirect with token
+        response = RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
+        response.set_cookie(
+            key="access_token", 
+            value=f"Bearer {access_token}", 
+            httponly=True,
+            max_age=1800,  # 30 minutes
+            samesite="lax",
+            secure=False  # Set to False for local development
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error during login: {str(e)}")
         return templates.TemplateResponse(
             "login.html", 
-            {"request": request, "error": "Invalid username or password"}
+            {"request": request, "error": "An error occurred during login"}
         )
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=Config.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    
-    # Redirect to home with token
-    response = RedirectResponse(url="/home", status_code=status.HTTP_303_SEE_OTHER)
-    response.set_cookie(
-        key="access_token", 
-        value=f"Bearer {access_token}", 
-        httponly=True,
-        max_age=1800,  # 30 minutes
-        samesite="lax"
-    )
-    return response
 
 @router.get("/signup", response_class=HTMLResponse)
 def signup_page(request: Request):

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Green Finance Risk Prediction{% endblock %}
+
+{% block extra_css %}
+<style>
+    .admin-container {
+        padding: 30px;
+    }
+    
+    .stats-card {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .stats-value {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+    }
+    
+    .recent-activity {
+        background-color: white;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .activity-item {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .admin-nav {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .admin-nav a {
+        color: #495057;
+        text-decoration: none;
+        margin-right: 20px;
+    }
+    
+    .admin-nav a:hover {
+        color: #4CAF50;
+    }
+    
+    .admin-nav a.active {
+        color: #4CAF50;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container admin-container">
+    <div class="row mb-4">
+        <div class="col">
+            <h2><i class="fas fa-cogs text-success me-2"></i>Admin Dashboard</h2>
+            <p class="text-muted">Manage users and monitor system activity.</p>
+        </div>
+    </div>
+    
+    <div class="admin-nav">
+        <a href="/admin" class="active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a>
+        <a href="/admin/users"><i class="fas fa-users me-2"></i>Users</a>
+        <a href="/admin/predictions"><i class="fas fa-chart-bar me-2"></i>Predictions</a>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h5><i class="fas fa-users text-primary me-2"></i>Total Users</h5>
+                <div class="stats-value">{{ users|length }}</div>
+                <div class="stats-label">Active Users</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h5><i class="fas fa-chart-bar text-success me-2"></i>Total Predictions</h5>
+                <div class="stats-value">{{ predictions|length }}</div>
+                <div class="stats-label">All Time</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stats-card">
+                <h5><i class="fas fa-user-shield text-warning me-2"></i>Admin Users</h5>
+                <div class="stats-value">{{ users|selectattr('is_admin')|list|length }}</div>
+                <div class="stats-label">System Administrators</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="recent-activity">
+                <h5><i class="fas fa-clock text-info me-2"></i>Recent Users</h5>
+                {% for user in users[:5] %}
+                <div class="activity-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ user.username }}</strong>
+                            <span class="text-muted">({{ user.email }})</span>
+                        </div>
+                        <div>
+                            {% if user.is_admin %}
+                            <span class="badge bg-warning">Admin</span>
+                            {% endif %}
+                            {% if not user.is_active %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if user.created_at %}
+                    <small class="text-muted">Joined {{ user.created_at.strftime('%Y-%m-%d') }}</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="recent-activity">
+                <h5><i class="fas fa-chart-line text-success me-2"></i>Recent Predictions</h5>
+                {% for prediction in predictions[:5] %}
+                <div class="activity-item">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>{{ prediction.company_name }}</strong>
+                            <span class="text-muted">by {{ prediction.user.username }}</span>
+                        </div>
+                        <div>
+                            <span class="badge bg-success">{{ prediction.esg_score|round(1) }}</span>
+                        </div>
+                    </div>
+                    {% if prediction.created_at %}
+                    <small class="text-muted">Created {{ prediction.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
